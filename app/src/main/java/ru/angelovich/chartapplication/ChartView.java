@@ -3,13 +3,9 @@ package ru.angelovich.chartapplication;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-
-import java.util.ArrayList;
 
 /**
  * Created by zhaosong on 2018/6/16.
@@ -124,8 +120,12 @@ abstract class DrawThread extends Thread {
     }
 
     private void onTick(long dt) {
-        Canvas canvas = surfaceHolder.lockCanvas(null);
         process(dt);
+
+        Canvas canvas = surfaceHolder.lockCanvas(null);
+        if (canvas == null)
+            return;
+
         synchronized (surfaceHolder) {
             draw(canvas);
         }

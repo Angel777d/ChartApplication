@@ -35,7 +35,7 @@ class ChartData {
 class AssetsReader {
     static String readData(Context context, String fileName) {
         String result = "";
-        try (InputStream is = context.getAssets().open(fileName);) {
+        try (InputStream is = context.getAssets().open(fileName)) {
             Writer writer = new StringWriter();
             char[] buffer = new char[1024];
             Reader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
