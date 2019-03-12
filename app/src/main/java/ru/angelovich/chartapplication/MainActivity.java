@@ -156,18 +156,16 @@ public class MainActivity extends AppCompatActivity {
         List<ChartData> list = AssetsReader.process(jsonStr);
         final ChartData data = list.get(0);
 
-        final ViewChartDrawer drawer = new ViewChartDrawer(10);
+        final ViewChartDrawer drawer = new ViewChartDrawer();
         drawer.setData(data);
-        drawer.setBounds(data.size - 1, 0);
 
         chartView = new ChartView(getApplicationContext(), drawer);
         final FrameLayout canvasLayout = findViewById(R.id.mainChartView);
         canvasLayout.addView(chartView);
 
 
-        ControllerChartDrawer drawer2 = new ControllerChartDrawer(2);
+        final ControllerChartDrawer drawer2 = new ControllerChartDrawer();
         drawer2.setData(data);
-        drawer2.setBounds(data.size - 1, 0);
 
         chartView2 = new ChartView(getApplicationContext(), drawer2);
         FrameLayout canvasLayout2 = findViewById(R.id.chartControllerView);
@@ -177,10 +175,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             void onBoundsChanged(float leftEdge, float rightEdge) {
                 Log.d("Thumb", String.format("left: %s, right: %s", leftEdge, rightEdge));
-                int size = data.size - 1;
-                int left = (int) Math.floor(size * leftEdge);
-                int right = (int) Math.ceil(size * rightEdge);
-                drawer.setBounds(right - left, left);
+                drawer.setBounds(leftEdge, rightEdge);
+                drawer2.setBounds(leftEdge, rightEdge);
             }
         };
     }

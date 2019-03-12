@@ -3,6 +3,7 @@ package ru.angelovich.chartapplication;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 
 import java.util.ArrayList;
 
@@ -64,13 +65,15 @@ class Props {
 }
 
 class BasicChartDrawer implements IChartDrawer, IChartBounds {
-    int width, height, padding, len, offset;
     boolean invData, invBounds, invSize, invDraw = false;
-    private Props props;
-    private ChartData data;
+    float leftEdge = 0;
+    float rightEdge = 1;
+    int width, height;
 
-    BasicChartDrawer(int p) {
-        padding = p;
+    Props props;
+    ChartData data;
+
+    BasicChartDrawer() {
         props = new Props();
     }
 
@@ -80,9 +83,9 @@ class BasicChartDrawer implements IChartDrawer, IChartBounds {
         invDraw = invSize = true;
     }
 
-    public void setBounds(int l, int o) {
-        len = l;
-        offset = o;
+    public void setBounds(float leftEdge, float rightEdge) {
+        this.leftEdge = leftEdge;
+        this.rightEdge = rightEdge;
         invDraw = invSize = invBounds = true;
     }
 
@@ -92,6 +95,11 @@ class BasicChartDrawer implements IChartDrawer, IChartBounds {
     }
 
     public void update(long dt) {
+
+        int size = data.size - 1;
+        int offset = (int) Math.floor(size * leftEdge);
+        int len = (int) Math.ceil(size * rightEdge) - offset;
+
         if (invData) {
             props.updatePaints(data);
         }
@@ -99,7 +107,7 @@ class BasicChartDrawer implements IChartDrawer, IChartBounds {
             props.updateLists(data, len, offset);
         }
         if (invSize) {
-            props.updateData(data, width, height, padding, len, offset);
+            props.updateData(data, width, height, 0, len, offset);
         }
         invSize = invBounds = invData = false;
     }
@@ -119,13 +127,55 @@ class BasicChartDrawer implements IChartDrawer, IChartBounds {
 }
 
 class ControllerChartDrawer extends BasicChartDrawer {
-    public ControllerChartDrawer(int p) {
-        super(p);
+    Paint rectPaint;
+
+    public ControllerChartDrawer() {
+        rectPaint = new Paint();
+        rectPaint.setColor(Color.RED);
+        rectPaint.setAlpha(127);
+    }
+
+    public void update(long dt) {
+        int offset = 0;
+        int len = data.size - 1;
+
+        if (invData) {
+            props.updatePaints(data);
+        }
+        if (invBounds) {
+            props.updateLists(data, len, offset);
+        }
+        if (invSize) {
+            int padding = height / 10;
+            props.updateData(data, width, height, padding, len, offset);
+        }
+        invSize = invBounds = invData = false;
+    }
+
+    public void draw(Canvas canvas) {
+        super.draw(canvas);
+        Rect rect = new Rect((int) (width * leftEdge), 0, (int) (width * rightEdge), height);
+        canvas.drawRect(rect, rectPaint);
     }
 }
 
 class ViewChartDrawer extends BasicChartDrawer {
-    public ViewChartDrawer(int p) {
-        super(p);
+
+    public void update(long dt) {
+        int size = data.size - 1;
+        int offset = (int) Math.floor(size * leftEdge);
+        int len = (int) Math.ceil(size * rightEdge) - offset;
+
+        if (invData) {
+            props.updatePaints(data);
+        }
+        if (invBounds) {
+            props.updateLists(data, len, offset);
+        }
+        if (invSize) {
+            props.updateData(data, width, height, 0, len, offset);
+        }
+        invSize = invBounds = invData = false;
     }
+
 }
