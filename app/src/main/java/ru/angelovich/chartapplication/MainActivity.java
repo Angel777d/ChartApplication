@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
         drawer2.setData(data);
 
         chartView2 = new ChartView(getApplicationContext(), drawer2);
-        FrameLayout canvasLayout2 = findViewById(R.id.chartControllerView);
+        final FrameLayout canvasLayout2 = findViewById(R.id.chartControllerView);
         canvasLayout2.addView(chartView2);
 
         tc = new TouchController(canvasLayout2) {

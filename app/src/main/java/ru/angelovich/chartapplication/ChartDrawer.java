@@ -8,12 +8,16 @@ import android.graphics.Rect;
 import java.util.ArrayList;
 
 
-class Props {
-    private int minY;
-    private int maxY;
 
+class Props {
+
+    int min = 0;
+    int max = 0;
+
+    float[] rows = new float[6];
     ArrayList<float[]> ptsList = new ArrayList<>();
     ArrayList<Paint> paints = new ArrayList<>();
+
 
     void updatePaints(ChartData data) {
         paints.clear();
@@ -22,15 +26,15 @@ class Props {
             Paint paint = new Paint();
             paint.setColor(line.color);
             paint.setAntiAlias(false);
-            paint.setStrokeWidth(4);
+            paint.setStrokeWidth(6);
             paints.add(paint);
         }
     }
 
-    void updateLists(ChartData data, int len, int offset) {
+    boolean updateLists(ChartData data, int len, int offset) {
         ptsList.clear();
-        minY = Integer.MAX_VALUE;
-        maxY = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
 
         for (int i = 0; i < data.chartsCount; i++) {
             ptsList.add(new float[len * 4]);
@@ -40,11 +44,31 @@ class Props {
                 maxY = Integer.max(maxY, line.yAxis[offset + j]);
             }
         }
+
+        return updateRange(minY, maxY);
     }
 
-    void updateData(ChartData data, int width, int height, int padding, int len, int offset) {
-        int baseY = height - padding;
-        float koeffY = (float) (height - padding * 2) / (maxY - minY);
+    boolean updateRange(int minY, int maxY) {
+        min = 0;
+        int newMax = max;
+
+        if (maxY * 1.05f > max) {
+            newMax = (int) Math.ceil(maxY * 1.1f / 10) * 10;
+        } else if (1f * max / (max - maxY) > 0.3) {
+            newMax = (int) Math.ceil(maxY * 1.1f / 10) * 10;
+        }
+
+        if (max != newMax) {
+            max = newMax;
+            return true;
+        }
+
+        return false;
+    }
+
+    void updateData(ChartData data, int width, int height, int len, int offset) {
+        int baseY = height;
+        float koeffY = (float) height / (max - min);
         float stepX = (float) width / len;
 
         for (int i = 0; i < len; i++) {
@@ -57,14 +81,26 @@ class Props {
                 pts[index + 2] = (int) ((i + 1) * stepX);
 
                 //some magic
-                pts[index + 1] = baseY - ((line[offset + i] - minY) * koeffY);
-                pts[index + 3] = baseY - ((line[offset + i + 1] - minY) * koeffY);
+                pts[index + 1] = baseY - ((line[offset + i] - min) * koeffY);
+                pts[index + 3] = baseY - ((line[offset + i + 1] - min) * koeffY);
             }
         }
+
+        //raws
+        int step = (max - min) / 6;
+        step = step > 0 ? step : 1;
+
+        for (int i = 0; i < 6; i++) {
+            rows[i] = baseY - (step * i * koeffY);
+        }
+
     }
 }
 
-class BasicChartDrawer implements IChartDrawer, IChartBounds {
+abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
+
+    abstract protected void startDraw(Canvas canvas);
+
     boolean invData, invBounds, invSize, invDraw = false;
     float leftEdge = 0;
     float rightEdge = 1;
@@ -97,8 +133,8 @@ class BasicChartDrawer implements IChartDrawer, IChartBounds {
     public void update(long dt) {
 
         int size = data.size - 1;
-        int offset = (int) Math.floor(size * leftEdge);
-        int len = (int) Math.ceil(size * rightEdge) - offset;
+        int offset = Math.round(size * leftEdge);
+        int len = Math.round(size * rightEdge) - offset;
 
         if (invData) {
             props.updatePaints(data);
@@ -107,17 +143,25 @@ class BasicChartDrawer implements IChartDrawer, IChartBounds {
             props.updateLists(data, len, offset);
         }
         if (invSize) {
-            props.updateData(data, width, height, 0, len, offset);
+            props.updateData(data, width, height, len, offset);
         }
         invSize = invBounds = invData = false;
     }
 
-    public void draw(Canvas canvas) {
+    public final void draw(Canvas canvas) {
 //        TODO: find out what is wrong here
 //        if (!invDraw)
 //            return;
 //        invDraw = false;
+        startDraw(canvas);
+    }
+
+
+    void drawBG(Canvas canvas) {
         canvas.drawColor(Color.GRAY);
+    }
+
+    void drawCharts(Canvas canvas) {
         for (int i = 0; i < data.chartsCount; i++) {
             float[] pts = props.ptsList.get(i);
             Paint paint = props.paints.get(i);
@@ -146,20 +190,31 @@ class ControllerChartDrawer extends BasicChartDrawer {
             props.updateLists(data, len, offset);
         }
         if (invSize) {
-            int padding = height / 10;
-            props.updateData(data, width, height, padding, len, offset);
+            props.updateData(data, width, height, len, offset);
         }
         invSize = invBounds = invData = false;
     }
 
-    public void draw(Canvas canvas) {
-        super.draw(canvas);
+    @Override
+    public void startDraw(Canvas canvas) {
+        drawBG(canvas);
+        drawCharts(canvas);
+
         Rect rect = new Rect((int) (width * leftEdge), 0, (int) (width * rightEdge), height);
         canvas.drawRect(rect, rectPaint);
     }
 }
 
 class ViewChartDrawer extends BasicChartDrawer {
+
+    Paint gridPaint;
+
+    public ViewChartDrawer() {
+        gridPaint = new Paint();
+        gridPaint.setColor(Color.WHITE);
+        gridPaint.setAlpha(80);
+        gridPaint.setStrokeWidth(2);
+    }
 
     public void update(long dt) {
         int size = data.size - 1;
@@ -173,9 +228,22 @@ class ViewChartDrawer extends BasicChartDrawer {
             props.updateLists(data, len, offset);
         }
         if (invSize) {
-            props.updateData(data, width, height, 0, len, offset);
+            props.updateData(data, width, height, len, offset);
         }
         invSize = invBounds = invData = false;
     }
 
+    @Override
+    public void startDraw(Canvas canvas) {
+        drawBG(canvas);
+        drawRows(canvas);
+        drawCharts(canvas);
+
+    }
+
+    void drawRows(Canvas canvas) {
+        for (int i = 0; i < props.rows.length; i++) {
+            canvas.drawLine(0, props.rows[i], width, props.rows[i], gridPaint);
+        }
+    }
 }
