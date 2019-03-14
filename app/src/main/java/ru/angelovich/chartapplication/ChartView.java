@@ -3,48 +3,40 @@ package ru.angelovich.chartapplication;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
-import android.graphics.SurfaceTexture;
-import android.util.AttributeSet;
-import android.view.Surface;
-import android.view.TextureView;
+import android.graphics.PixelFormat;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 /**
  * Created by zhaosong on 2018/6/16.
  */
 
-public class ChartView extends TextureView implements TextureView.SurfaceTextureListener {
+public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
     DrawThread drawThread;
     IChartDrawer drawer;
-    Surface mSurface;
-
-    public ChartView(Context context) {
-        this(context, null, 0);
-    }
-
-    public ChartView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
-    }
-
-    public ChartView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-    }
 
     public ChartView(Context context, IChartDrawer drawer) {
-        this(context, null, 0);
+        super(context);
+
         this.drawer = drawer;
+        drawer.setSize(getWidth(), getHeight());
 
         setFocusable(true);
-        setOpaque(false);
+        getHolder().addCallback(this);
 
-        setSurfaceTextureListener(this);
-
+        this.getHolder().setFormat(PixelFormat.TRANSLUCENT);
     }
 
     @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        mSurface = new Surface(surface);
-        drawer.setSize(width, height);
-        drawThread = new DrawThread(mSurface, getResources()) {
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        drawer.setSize(w, h);
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+
+        drawThread = new DrawThread(getHolder(), getResources()) {
             @Override
             void process(long dt) {
                 drawer.update(dt);
@@ -60,17 +52,7 @@ public class ChartView extends TextureView implements TextureView.SurfaceTexture
     }
 
     @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int w, int h) {
-        drawer.setSize(w, h);
-    }
-
-    @Override
-    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-
-    }
-
-    @Override
-    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+    public void surfaceDestroyed(SurfaceHolder holder) {
         boolean retry = true;
         drawThread.setRunning(false);
         while (retry) {
@@ -81,16 +63,65 @@ public class ChartView extends TextureView implements TextureView.SurfaceTexture
                 // try again
             }
         }
-        mSurface.release();
-        mSurface = null;
-        return true;
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
     }
 }
 
 abstract class DrawThread extends Thread {
 
+    private final SurfaceHolder surfaceHolder;
+
+    private boolean runFlag = false;
+
+    DrawThread(SurfaceHolder surfaceHolder, Resources resources) {
+        this.surfaceHolder = surfaceHolder;
+        timer = new TickGenerator();
+    }
+
+    private TickGenerator timer;
+
+    @Override
+    public void run() {
+        while (runFlag) {
+            long dt = timer.get_dt();
+            onTick(dt);
+
+            try {
+                sleep(TickGenerator.FRAME_TIME);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    void setRunning(boolean run) {
+        runFlag = run;
+    }
+
+    private void onTick(long dt) {
+        process(dt);
+
+        Canvas canvas = surfaceHolder.lockCanvas(null);
+        if (canvas == null)
+            return;
+
+        synchronized (surfaceHolder) {
+            draw(canvas);
+        }
+        surfaceHolder.unlockCanvasAndPost(canvas);
+    }
+
     class TickGenerator {
-        private static final long TARGET_FRAME_RATE = 30;
+        private static final long TARGET_FRAME_RATE = 60;
         private static final long FRAME_TIME = 1000 / TARGET_FRAME_RATE;
         private long prevTime;
 
@@ -109,43 +140,6 @@ abstract class DrawThread extends Thread {
             }
             return result;
         }
-    }
-
-    private boolean runFlag = false;
-    private final Surface surface;
-    private TickGenerator timer;
-
-    DrawThread(Surface surface, Resources resources) {
-        this.surface = surface;
-        timer = new TickGenerator();
-    }
-
-    void setRunning(boolean run) {
-        runFlag = run;
-    }
-
-    @Override
-    public void run() {
-        while (runFlag) {
-            long dt = timer.get_dt();
-
-            if (dt > 0) {
-                onTick(dt);
-            }
-        }
-    }
-
-    private void onTick(long dt) {
-        process(dt);
-
-        Canvas canvas = surface.lockCanvas(null);
-        if (canvas == null)
-            return;
-
-        synchronized (surface) {
-            draw(canvas);
-        }
-        surface.unlockCanvasAndPost(canvas);
     }
 
     abstract void process(long dt);

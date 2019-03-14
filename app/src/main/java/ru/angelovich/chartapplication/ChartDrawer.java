@@ -156,7 +156,7 @@ abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
             buffer = 0;
         invDraw = false;
 
-        if (buffer > 3) {
+        if (buffer > 10) {
             return;
         }
         ++buffer;

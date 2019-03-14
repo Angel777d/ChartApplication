@@ -72,21 +72,27 @@ abstract class TouchController implements View.OnTouchListener {
                     }
                     leftEdge = left;
                     rightEdge = right;
-                    onRangeChanged(leftEdge, rightEdge);
+                    changeRange(leftEdge, rightEdge);
                     break;
                 case LeftAction:
                     left = x / width;
                     leftEdge = MathUtils.clamp(left, 0, rightEdge - 0.1f);
-                    onRangeChanged(leftEdge, rightEdge);
+                    changeRange(leftEdge, rightEdge);
                     break;
                 case RightAction:
                     right = x / width;
                     rightEdge = MathUtils.clamp(right, leftEdge + 0.1f, 1);
-                    onRangeChanged(leftEdge, rightEdge);
+                    changeRange(leftEdge, rightEdge);
                     break;
                 default:
                     break;
             }
+        }
+
+        void changeRange(float leftEdge, float rightEdge) {
+            leftEdge = MathUtils.clamp(leftEdge, 0, 1);
+            rightEdge = MathUtils.clamp(rightEdge, 0, 1);
+            onRangeChanged(leftEdge, rightEdge);
         }
 
         void touch(float x, int width) {
