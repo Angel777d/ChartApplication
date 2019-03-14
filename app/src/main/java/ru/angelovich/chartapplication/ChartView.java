@@ -3,40 +3,48 @@ package ru.angelovich.chartapplication;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
-import android.graphics.PixelFormat;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.graphics.SurfaceTexture;
+import android.util.AttributeSet;
+import android.view.Surface;
+import android.view.TextureView;
 
 /**
  * Created by zhaosong on 2018/6/16.
  */
 
-public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
+public class ChartView extends TextureView implements TextureView.SurfaceTextureListener {
     DrawThread drawThread;
     IChartDrawer drawer;
+    Surface mSurface;
+
+    public ChartView(Context context) {
+        this(context, null, 0);
+    }
+
+    public ChartView(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public ChartView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
 
     public ChartView(Context context, IChartDrawer drawer) {
-        super(context);
-
+        this(context, null, 0);
         this.drawer = drawer;
-        drawer.setSize(getWidth(), getHeight());
 
         setFocusable(true);
-        getHolder().addCallback(this);
+        setOpaque(false);
 
-        this.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+        setSurfaceTextureListener(this);
+
     }
 
     @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        drawer.setSize(w, h);
-    }
-
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-
-        drawThread = new DrawThread(getHolder(), getResources()) {
+    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        mSurface = new Surface(surface);
+        drawer.setSize(width, height);
+        drawThread = new DrawThread(mSurface, getResources()) {
             @Override
             void process(long dt) {
                 drawer.update(dt);
@@ -52,7 +60,17 @@ public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int w, int h) {
+        drawer.setSize(w, h);
+    }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+    }
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
         boolean retry = true;
         drawThread.setRunning(false);
         while (retry) {
@@ -63,11 +81,9 @@ public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
                 // try again
             }
         }
-    }
-
-    @Override
-    public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-
+        mSurface.release();
+        mSurface = null;
+        return true;
     }
 }
 
@@ -96,11 +112,11 @@ abstract class DrawThread extends Thread {
     }
 
     private boolean runFlag = false;
-    private final SurfaceHolder surfaceHolder;
+    private final Surface surface;
     private TickGenerator timer;
 
-    DrawThread(SurfaceHolder surfaceHolder, Resources resources) {
-        this.surfaceHolder = surfaceHolder;
+    DrawThread(Surface surface, Resources resources) {
+        this.surface = surface;
         timer = new TickGenerator();
     }
 
@@ -122,14 +138,14 @@ abstract class DrawThread extends Thread {
     private void onTick(long dt) {
         process(dt);
 
-        Canvas canvas = surfaceHolder.lockCanvas(null);
+        Canvas canvas = surface.lockCanvas(null);
         if (canvas == null)
             return;
 
-        synchronized (surfaceHolder) {
+        synchronized (surface) {
             draw(canvas);
         }
-        surfaceHolder.unlockCanvasAndPost(canvas);
+        surface.unlockCanvasAndPost(canvas);
     }
 
     abstract void process(long dt);

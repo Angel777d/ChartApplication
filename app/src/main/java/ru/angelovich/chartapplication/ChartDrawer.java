@@ -3,6 +3,7 @@ package ru.angelovich.chartapplication;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ class Props {
             ChartLine line = data.lines.get(i);
             Paint paint = new Paint();
             paint.setColor(line.color);
-            paint.setAntiAlias(false);
+            paint.setAntiAlias(true);
             paint.setStrokeWidth(6);
             paints.add(paint);
         }
@@ -101,6 +102,7 @@ abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
 
     abstract protected void startDraw(Canvas canvas);
 
+    int buffer = 0;
     boolean invData, invBounds, invSize, invDraw = false;
     float leftEdge = 0;
     float rightEdge = 1;
@@ -150,15 +152,23 @@ abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
 
     public final void draw(Canvas canvas) {
 //        TODO: find out what is wrong here
-//        if (!invDraw)
-//            return;
-//        invDraw = false;
+        if (invDraw)
+            buffer = 0;
+        invDraw = false;
+
+        if (buffer > 3) {
+            return;
+        }
+        ++buffer;
+
         startDraw(canvas);
     }
 
 
     void drawBG(Canvas canvas) {
-        canvas.drawColor(Color.GRAY);
+        canvas.drawColor(Color.argb(0, 255, 255, 255));
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+
     }
 
     void drawCharts(Canvas canvas) {
