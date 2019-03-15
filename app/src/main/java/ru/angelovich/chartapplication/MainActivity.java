@@ -1,11 +1,18 @@
 package ru.angelovich.chartapplication;
 
+import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.CompoundButton;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import java.util.List;
 
@@ -14,20 +21,26 @@ public class MainActivity extends AppCompatActivity {
 
     List<ChartData> dataList;
     TouchController tc;
-    ControllerChartDrawer controllerChartDrawer;
-    ViewChartDrawer chartDrawer;
-    int theme;
+    ControllerDrawer controllerChartDrawer;
+    ViewDrawer chartDrawer;
+    boolean isDark;
 
     public MainActivity() {
         super();
     }
 
     public void onThemeClick(MenuItem item) {
-        theme = theme == R.style.AppTheme ? R.style.AppTheme_Dark : R.style.AppTheme;
-        initView(theme);
+        isDark = !isDark;
+        initView();
+        updateData();
     }
 
-    void initView(int theme) {
+    void initView() {
+        int theme = isDark ? R.style.AppTheme_Dark : R.style.AppTheme;
+        int bgColor = ContextCompat.getColor(getApplicationContext(), isDark ? R.color.backgroundDark : R.color.backgroundLight);
+        chartDrawer.setBgColor(bgColor);
+        controllerChartDrawer.setBgColor(bgColor);
+
         setTheme(theme);
         setContentView(R.layout.activity_main);
 
@@ -44,8 +57,8 @@ public class MainActivity extends AppCompatActivity {
 
         loadData();
 
-        controllerChartDrawer = new ControllerChartDrawer();
-        chartDrawer = new ViewChartDrawer();
+        controllerChartDrawer = new ControllerDrawer();
+        chartDrawer = new ViewDrawer();
 
         tc = new TouchController() {
             @Override
@@ -55,11 +68,11 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        ChartData data = dataList.get(1);
-        updateData(data);
+        initView();
 
-        theme = R.style.AppTheme;
-        initView(theme);
+        ChartData data = dataList.get(1);
+        chartDrawer.setData(data);
+        controllerChartDrawer.setData(data);
     }
 
     void loadData() {
@@ -68,21 +81,65 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void initMainChart() {
-        ChartView view = new ChartView(getApplicationContext(), chartDrawer);
         final FrameLayout canvasLayout = findViewById(R.id.mainChartView);
+        ChartView view = new ChartView(canvasLayout.getContext(), chartDrawer);
         canvasLayout.addView(view);
 
     }
 
     void initControlChart() {
-        ChartView view = new ChartView(getApplicationContext(), controllerChartDrawer);
         final FrameLayout canvasLayout2 = findViewById(R.id.chartControllerView);
+        ChartView view = new ChartView(canvasLayout2.getContext(), controllerChartDrawer);
         canvasLayout2.addView(view);
 
         tc.setView(canvasLayout2);
     }
 
-    void updateData(ChartData data) {
+    void updateData() {
+        ChartData data = dataList.get(1);
+        LinearLayout container = findViewById(R.id.linesControls);
+        container.removeAllViews();
+        for (int i = 0; i < data.lines.size(); i++) {
+            final ChartLine line = data.lines.get(i);
+            AppCompatCheckBox box = createCheckBox(i, line, container.getContext());
+            container.addView(box);
+        }
+    }
+
+    AppCompatCheckBox createCheckBox(final int index, ChartLine line, Context context) {
+        AppCompatCheckBox box = new AppCompatCheckBox(context);
+        box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                setLineVisible(isChecked, index);
+            }
+        });
+        int[][] states = new int[][]{
+                new int[]{android.R.attr.state_enabled}, // enabled
+                new int[]{-android.R.attr.state_enabled}, // disabled
+                new int[]{-android.R.attr.state_checked}, // unchecked
+                new int[]{android.R.attr.state_pressed}  // pressed
+        };
+
+        int[] colors = new int[]{
+                line.color,
+                Color.GRAY,
+                Color.GRAY,
+                line.color
+        };
+
+        ColorStateList myList = new ColorStateList(states, colors);
+        box.setButtonTintList(myList);
+        box.setTextColor(line.color);
+        box.setText(line.name);
+        box.setChecked(line.visible);
+        return box;
+    }
+
+    void setLineVisible(boolean visible, int index) {
+        ChartData data = dataList.get(1);
+        ChartLine line = data.lines.get(index);
+        line.visible = visible;
         chartDrawer.setData(data);
         controllerChartDrawer.setData(data);
     }

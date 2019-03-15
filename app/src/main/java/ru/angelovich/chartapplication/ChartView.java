@@ -13,9 +13,9 @@ import android.view.SurfaceView;
 
 public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
     DrawThread drawThread;
-    IChartDrawer drawer;
+    IDrawer drawer;
 
-    public ChartView(Context context, IChartDrawer drawer) {
+    public ChartView(Context context, IDrawer drawer) {
         super(context);
 
         this.drawer = drawer;
@@ -35,7 +35,6 @@ public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-
         drawThread = new DrawThread(getHolder(), getResources()) {
             @Override
             void process(long dt) {
@@ -46,23 +45,23 @@ public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
             void draw(Canvas canvas) {
                 drawer.draw(canvas);
             }
+
+            @Override
+            boolean isInvalid() {
+                return drawer.isInvalid();
+            }
         };
+
+
         drawThread.setRunning(true);
         drawThread.start();
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        boolean retry = true;
         drawThread.setRunning(false);
-        while (retry) {
-            try {
-                drawThread.join();
-                retry = false;
-            } catch (InterruptedException e) {
-                // try again
-            }
-        }
+        drawThread.close();
+        drawThread = null;
     }
 
     @Override
@@ -89,16 +88,38 @@ abstract class DrawThread extends Thread {
 
     private TickGenerator timer;
 
+    private boolean closeRetry;
+
     @Override
     public void run() {
         while (runFlag) {
             long dt = timer.get_dt();
-            onTick(dt);
+            process(dt);
+
+            if (isInvalid()) {
+                Canvas canvas = surfaceHolder.lockCanvas(null);
+                if (canvas == null)
+                    return;
+
+                synchronized (surfaceHolder) {
+                    draw(canvas);
+                }
+                surfaceHolder.unlockCanvasAndPost(canvas);
+            }
 
             try {
                 sleep(TickGenerator.FRAME_TIME);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+            }
+        }
+
+        while (closeRetry) {
+            try {
+                join();
+                closeRetry = false;
+            } catch (InterruptedException e) {
+                // try again
             }
         }
     }
@@ -107,18 +128,15 @@ abstract class DrawThread extends Thread {
         runFlag = run;
     }
 
-    private void onTick(long dt) {
-        process(dt);
-
-        Canvas canvas = surfaceHolder.lockCanvas(null);
-        if (canvas == null)
-            return;
-
-        synchronized (surfaceHolder) {
-            draw(canvas);
-        }
-        surfaceHolder.unlockCanvasAndPost(canvas);
+    void close() {
+        closeRetry = true;
     }
+
+    abstract boolean isInvalid();
+
+    abstract void process(long dt);
+
+    abstract void draw(Canvas canvas);
 
     class TickGenerator {
         private static final long TARGET_FRAME_RATE = 60;
@@ -131,18 +149,9 @@ abstract class DrawThread extends Thread {
 
         long get_dt() {
             long now = System.currentTimeMillis();
-            long elapsedTime = now - prevTime;
-            long result = 0;
-
-            if (elapsedTime >= FRAME_TIME) {
-                result = now - prevTime;
-                prevTime = now;
-            }
+            long result = now - prevTime;
+            prevTime = now;
             return result;
         }
     }
-
-    abstract void process(long dt);
-
-    abstract void draw(Canvas canvas);
 }

@@ -23,13 +23,14 @@ class ChartLine {
     int[] yAxis;
     String name;
     int color;
+
+    boolean visible = true;
 }
 
 class ChartData {
     ArrayList<ChartLine> lines;
     int[] xAxis;
     int size;
-    int chartsCount;
 }
 
 class AssetsReader {
@@ -110,7 +111,6 @@ class AssetsReader {
             //
         }
         result.size = result.xAxis.length;
-        result.chartsCount = result.lines.size();
         return result;
     }
 }

@@ -3,27 +3,32 @@ package ru.angelovich.chartapplication;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
 import android.graphics.Rect;
 
 import java.util.ArrayList;
 
 
-
 class Props {
 
-    int min = 0;
-    int max = 0;
-
+    int size = 0;
+    private int min = 0;
+    private int max = 0;
+    private ArrayList<ChartLine> visibleLines = new ArrayList<>();
     float[] rows = new float[6];
     ArrayList<float[]> ptsList = new ArrayList<>();
     ArrayList<Paint> paints = new ArrayList<>();
 
-
-    void updatePaints(ChartData data) {
+    void updateData(ChartData data) {
         paints.clear();
-        for (int i = 0; i < data.chartsCount; i++) {
+        size = 0;
+        visibleLines.clear();
+
+        for (int i = 0; i < data.lines.size(); i++) {
             ChartLine line = data.lines.get(i);
+            if (!line.visible)
+                continue;
+            visibleLines.add(line);
+            ++size;
             Paint paint = new Paint();
             paint.setColor(line.color);
             paint.setAntiAlias(true);
@@ -32,24 +37,25 @@ class Props {
         }
     }
 
-    boolean updateLists(ChartData data, int len, int offset) {
+    boolean updateRange(int len, int offset) {
         ptsList.clear();
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
 
-        for (int i = 0; i < data.chartsCount; i++) {
+        for (int i = 0; i < size; i++) {
+            ChartLine line = visibleLines.get(i);
             ptsList.add(new float[len * 4]);
-            ChartLine line = data.lines.get(i);
+
             for (int j = 0; j < len; j++) {
                 minY = Integer.min(minY, line.yAxis[offset + j]);
                 maxY = Integer.max(maxY, line.yAxis[offset + j]);
             }
         }
 
-        return updateRange(minY, maxY);
+        return setMinMax(minY, maxY);
     }
 
-    boolean updateRange(int minY, int maxY) {
+    boolean setMinMax(int minY, int maxY) {
         min = 0;
         int newMax = max;
 
@@ -67,23 +73,26 @@ class Props {
         return false;
     }
 
-    void updateData(ChartData data, int width, int height, int len, int offset) {
+    void updateSize(int width, int height, int len, int offset) {
         int baseY = height;
         float koeffY = (float) height / (max - min);
         float stepX = (float) width / len;
 
         for (int i = 0; i < len; i++) {
             int index = i * 4;
-            for (int j = 0; j < data.chartsCount; j++) {
+            for (int j = 0; j < size; j++) {
+                ChartLine line = visibleLines.get(j);
+                if (!line.visible)
+                    continue;
+
                 float[] pts = ptsList.get(j);
-                int[] line = data.lines.get(j).yAxis;
 
                 pts[index] = (int) (i * stepX);
                 pts[index + 2] = (int) ((i + 1) * stepX);
 
                 //some magic
-                pts[index + 1] = baseY - ((line[offset + i] - min) * koeffY);
-                pts[index + 3] = baseY - ((line[offset + i + 1] - min) * koeffY);
+                pts[index + 1] = baseY - ((line.yAxis[offset + i] - min) * koeffY);
+                pts[index + 3] = baseY - ((line.yAxis[offset + i + 1] - min) * koeffY);
             }
         }
 
@@ -94,24 +103,24 @@ class Props {
         for (int i = 0; i < 6; i++) {
             rows[i] = baseY - (step * i * koeffY);
         }
-
     }
 }
 
-abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
+abstract class BasicDrawer implements IDrawer, IChartBounds {
 
     abstract protected void startDraw(Canvas canvas);
 
-    int buffer = 0;
-    boolean invData, invBounds, invSize, invDraw = false;
     float leftEdge = 0;
     float rightEdge = 1;
     int width, height;
 
+    private boolean invData, invBounds, invSize, invDraw = false;
+    private int bgColor = Color.MAGENTA;
+
     Props props;
     ChartData data;
 
-    BasicChartDrawer() {
+    BasicDrawer() {
         props = new Props();
     }
 
@@ -121,10 +130,20 @@ abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
         invDraw = invSize = true;
     }
 
+    @Override
+    public boolean isInvalid() {
+        return invDraw;
+    }
+
     public void setBounds(float leftEdge, float rightEdge) {
         this.leftEdge = leftEdge;
         this.rightEdge = rightEdge;
         invDraw = invSize = invBounds = true;
+    }
+
+    public void setBgColor(int color) {
+        bgColor = color;
+        invDraw = true;
     }
 
     public void setData(ChartData d) {
@@ -132,47 +151,32 @@ abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
         invDraw = invSize = invBounds = invData = true;
     }
 
-    public void update(long dt) {
+    abstract public void update(long dt);
 
-        int size = data.size - 1;
-        int offset = Math.round(size * leftEdge);
-        int len = Math.round(size * rightEdge) - offset;
-
+    void validate(int len, int offset) {
         if (invData) {
-            props.updatePaints(data);
+            props.updateData(data);
         }
         if (invBounds) {
-            props.updateLists(data, len, offset);
+            props.updateRange(len, offset);
         }
         if (invSize) {
-            props.updateData(data, width, height, len, offset);
+            props.updateSize(width, height, len, offset);
         }
         invSize = invBounds = invData = false;
     }
 
     public final void draw(Canvas canvas) {
-//        TODO: find out what is wrong here
-        if (invDraw)
-            buffer = 0;
         invDraw = false;
-
-        if (buffer > 10) {
-            return;
-        }
-        ++buffer;
-
         startDraw(canvas);
     }
 
-
     void drawBG(Canvas canvas) {
-        canvas.drawColor(Color.argb(0, 255, 255, 255));
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-
+        canvas.drawColor(bgColor);
     }
 
     void drawCharts(Canvas canvas) {
-        for (int i = 0; i < data.chartsCount; i++) {
+        for (int i = 0; i < props.size; i++) {
             float[] pts = props.ptsList.get(i);
             Paint paint = props.paints.get(i);
             canvas.drawLines(pts, paint);
@@ -180,10 +184,10 @@ abstract class BasicChartDrawer implements IChartDrawer, IChartBounds {
     }
 }
 
-class ControllerChartDrawer extends BasicChartDrawer {
+class ControllerDrawer extends BasicDrawer {
     Paint rectPaint;
 
-    public ControllerChartDrawer() {
+    public ControllerDrawer() {
         rectPaint = new Paint();
         rectPaint.setColor(Color.RED);
         rectPaint.setAlpha(127);
@@ -193,16 +197,7 @@ class ControllerChartDrawer extends BasicChartDrawer {
         int offset = 0;
         int len = data.size - 1;
 
-        if (invData) {
-            props.updatePaints(data);
-        }
-        if (invBounds) {
-            props.updateLists(data, len, offset);
-        }
-        if (invSize) {
-            props.updateData(data, width, height, len, offset);
-        }
-        invSize = invBounds = invData = false;
+        validate(len, offset);
     }
 
     @Override
@@ -215,11 +210,11 @@ class ControllerChartDrawer extends BasicChartDrawer {
     }
 }
 
-class ViewChartDrawer extends BasicChartDrawer {
+class ViewDrawer extends BasicDrawer {
 
-    Paint gridPaint;
+    private Paint gridPaint;
 
-    public ViewChartDrawer() {
+    public ViewDrawer() {
         gridPaint = new Paint();
         gridPaint.setColor(Color.WHITE);
         gridPaint.setAlpha(80);
@@ -231,16 +226,7 @@ class ViewChartDrawer extends BasicChartDrawer {
         int offset = (int) Math.floor(size * leftEdge);
         int len = (int) Math.ceil(size * rightEdge) - offset;
 
-        if (invData) {
-            props.updatePaints(data);
-        }
-        if (invBounds) {
-            props.updateLists(data, len, offset);
-        }
-        if (invSize) {
-            props.updateData(data, width, height, len, offset);
-        }
-        invSize = invBounds = invData = false;
+        validate(len, offset);
     }
 
     @Override
