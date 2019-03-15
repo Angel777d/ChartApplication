@@ -29,28 +29,6 @@ public class MainActivity extends AppCompatActivity {
         super();
     }
 
-    public void onThemeClick(MenuItem item) {
-        isDark = !isDark;
-        initView();
-        updateData();
-    }
-
-    void initView() {
-        int theme = isDark ? R.style.AppTheme_Dark : R.style.AppTheme;
-        int bgColor = ContextCompat.getColor(getApplicationContext(), isDark ? R.color.backgroundDark : R.color.backgroundLight);
-        chartDrawer.setBgColor(bgColor);
-        controllerChartDrawer.setBgColor(bgColor);
-
-        setTheme(theme);
-        setContentView(R.layout.activity_main);
-
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        initMainChart();
-        initControlChart();
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,16 +46,41 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        tc.setBounds(.3f, .7f);
+
         initView();
+        updateData();
 
         ChartData data = dataList.get(1);
         chartDrawer.setData(data);
         controllerChartDrawer.setData(data);
     }
 
+    public void onThemeClick(MenuItem item) {
+        isDark = !isDark;
+        initView();
+        updateData();
+    }
+
     void loadData() {
         String jsonStr = AssetsReader.readData(this, "chart_data.json");
         dataList = AssetsReader.process(jsonStr);
+    }
+
+    void initView() {
+        int theme = isDark ? R.style.AppTheme_Dark : R.style.AppTheme;
+        int bgColor = ContextCompat.getColor(getApplicationContext(), isDark ? R.color.backgroundDark : R.color.backgroundLight);
+        chartDrawer.setBgColor(bgColor);
+        controllerChartDrawer.setBgColor(bgColor);
+
+        setTheme(theme);
+        setContentView(R.layout.activity_main);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        initMainChart();
+        initControlChart();
     }
 
     void initMainChart() {

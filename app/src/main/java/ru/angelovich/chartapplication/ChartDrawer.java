@@ -186,11 +186,19 @@ abstract class BasicDrawer implements IDrawer, IChartBounds {
 
 class ControllerDrawer extends BasicDrawer {
     Paint rectPaint;
+    private static final int STROKE_SIZE = 20;
+    Paint coverPaint;
 
     public ControllerDrawer() {
         rectPaint = new Paint();
-        rectPaint.setColor(Color.RED);
-        rectPaint.setAlpha(127);
+        rectPaint.setColor(Color.GRAY);
+        rectPaint.setStyle(Paint.Style.STROKE);
+        rectPaint.setAlpha(100);
+        rectPaint.setStrokeWidth(STROKE_SIZE);
+
+        coverPaint = new Paint();
+        coverPaint.setColor(Color.GRAY);
+        coverPaint.setAlpha(50);
     }
 
     public void update(long dt) {
@@ -205,8 +213,21 @@ class ControllerDrawer extends BasicDrawer {
         drawBG(canvas);
         drawCharts(canvas);
 
-        Rect rect = new Rect((int) (width * leftEdge), 0, (int) (width * rightEdge), height);
+        Rect rect = new Rect(0, 0, 0, height);
+        int lPos = (int) (width * leftEdge);
+        int rPos = (int) (width * rightEdge);
+
+        rect.right = lPos - STROKE_SIZE / 2;
+        canvas.drawRect(rect, coverPaint);
+
+        rect.left = rPos + STROKE_SIZE / 2;
+        rect.right = width;
+        canvas.drawRect(rect, coverPaint);
+
+        rect.left = lPos;
+        rect.right = rPos;
         canvas.drawRect(rect, rectPaint);
+        //Rect rect = new Rect((int) (width * leftEdge), 0, (int) (width * rightEdge), height);
     }
 }
 
@@ -216,7 +237,7 @@ class ViewDrawer extends BasicDrawer {
 
     public ViewDrawer() {
         gridPaint = new Paint();
-        gridPaint.setColor(Color.WHITE);
+        gridPaint.setColor(Color.GRAY);
         gridPaint.setAlpha(80);
         gridPaint.setStrokeWidth(2);
     }

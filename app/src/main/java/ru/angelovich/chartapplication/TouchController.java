@@ -20,6 +20,12 @@ abstract class TouchController implements View.OnTouchListener {
         view.setOnTouchListener(this);
     }
 
+    void setBounds(float leftEdge, float rightEdge) {
+        thumb.leftEdge = leftEdge;
+        thumb.rightEdge = rightEdge;
+        onBoundsChanged(leftEdge, rightEdge);
+    }
+
     abstract void onBoundsChanged(float leftEdge, float rightEdge);
 
     @Override
