@@ -22,14 +22,16 @@ import java.util.List;
 import ru.angelovich.chartapplication.data.AssetsReader;
 import ru.angelovich.chartapplication.data.ChartData;
 import ru.angelovich.chartapplication.data.ChartLine;
+import ru.angelovich.chartapplication.drawer.ControlChartDrawer;
+import ru.angelovich.chartapplication.drawer.MainChartDrawer;
 
 
 public class MainActivity extends AppCompatActivity {
 
     List<ChartData> dataList;
     TouchController tc;
-    ControllerDrawer controllerChartDrawer;
-    ViewDrawer chartDrawer;
+    ControlChartDrawer controllerChartDrawer;
+    MainChartDrawer chartDrawer;
     boolean isDark;
 
     public MainActivity() {
@@ -42,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
 
         loadData();
 
-        controllerChartDrawer = new ControllerDrawer();
-        chartDrawer = new ViewDrawer();
+        controllerChartDrawer = new ControlChartDrawer();
+        chartDrawer = new MainChartDrawer();
 
         tc = new TouchController() {
             @Override
