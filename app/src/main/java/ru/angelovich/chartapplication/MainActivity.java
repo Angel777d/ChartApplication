@@ -1,9 +1,12 @@
 package ru.angelovich.chartapplication;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatCheckBox;
@@ -48,6 +51,9 @@ public class MainActivity extends AppCompatActivity {
 
         tc.setBounds(.3f, .7f);
 
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        isDark = sp.getBoolean("isDark", false);
+
         initView();
         updateData();
 
@@ -58,8 +64,18 @@ public class MainActivity extends AppCompatActivity {
 
     public void onThemeClick(MenuItem item) {
         isDark = !isDark;
-        initView();
-        updateData();
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor edit = sp.edit();
+        edit.putBoolean("isDark", isDark);
+        edit.apply();
+
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
+//
+//        initView();
+//        updateData();
     }
 
     void loadData() {
