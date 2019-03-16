@@ -19,6 +19,10 @@ import android.widget.LinearLayout;
 
 import java.util.List;
 
+import ru.angelovich.chartapplication.data.AssetsReader;
+import ru.angelovich.chartapplication.data.ChartData;
+import ru.angelovich.chartapplication.data.ChartLine;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -75,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         finish();
 //
 //        initView();
-//        updateData();
+//        updatePaint();
     }
 
     void loadData() {

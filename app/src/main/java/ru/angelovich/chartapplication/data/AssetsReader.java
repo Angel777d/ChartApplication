@@ -1,4 +1,4 @@
-package ru.angelovich.chartapplication;
+package ru.angelovich.chartapplication.data;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -19,22 +19,12 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-class ChartLine {
-    int[] yAxis;
-    String name;
-    int color;
 
-    boolean visible = true;
-}
+public class AssetsReader {
+    private static final String TYPE_X = "x";
+    private static final String TYPE_LINE = "line";
 
-class ChartData {
-    ArrayList<ChartLine> lines;
-    int[] xAxis;
-    int size;
-}
-
-class AssetsReader {
-    static String readData(Context context, String fileName) {
+    public static String readData(Context context, String fileName) {
         String result = "";
         try (InputStream is = context.getAssets().open(fileName)) {
             Writer writer = new StringWriter();
@@ -53,9 +43,6 @@ class AssetsReader {
 
         return result;
     }
-
-    private static final String TYPE_X = "x";
-    private static final String TYPE_LINE = "line";
 
     public static ArrayList<ChartData> process(String jsonValue) {
         ArrayList<ChartData> result = new ArrayList<>();
@@ -94,11 +81,7 @@ class AssetsReader {
                     ChartLine line = new ChartLine();
                     line.name = names.getString(listTypeId);
                     String colorStr = colors.getString(listTypeId);
-                    int colorInt = Color.parseColor(colorStr);
-                    int r = Color.red(colorInt);
-                    int g = Color.green(colorInt);
-                    int b = Color.blue(colorInt);
-                    line.color = colorInt;
+                    line.color = Color.parseColor(colorStr);
                     line.yAxis = target;
                     result.lines.add(line);
                 }
@@ -114,4 +97,3 @@ class AssetsReader {
         return result;
     }
 }
-

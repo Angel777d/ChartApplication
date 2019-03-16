@@ -7,9 +7,6 @@ import android.graphics.PixelFormat;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-/**
- * Created by zhaosong on 2018/6/16.
- */
 
 public class ChartView extends SurfaceView implements SurfaceHolder.Callback {
     DrawThread drawThread;
