@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class ChartData {
     public ArrayList<ChartLine> lines;
-    public int[] xAxis;
+    public long[] xAxis;
     public int size;
 }
 

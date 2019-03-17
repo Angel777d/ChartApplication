@@ -74,21 +74,26 @@ public class AssetsReader {
                 JSONArray list = columns.getJSONArray(i);
                 String listTypeId = list.getString(0);
                 String listType = types.getString(listTypeId);
-                int[] target = new int[list.length() - 1];
                 if (TYPE_X.equals(listType)) {
+                    long[] target = new long[list.length() - 1];
                     result.xAxis = target;
+                    for (int j = 1; j < list.length(); j++) {
+                        target[j - 1] = list.getLong(j);
+                    }
+
                 } else if (TYPE_LINE.equals(listType)) {
+                    int[] target = new int[list.length() - 1];
                     ChartLine line = new ChartLine();
                     line.name = names.getString(listTypeId);
                     String colorStr = colors.getString(listTypeId);
                     line.color = Color.parseColor(colorStr);
                     line.yAxis = target;
                     result.lines.add(line);
+                    for (int j = 1; j < list.length(); j++) {
+                        target[j - 1] = list.getInt(j);
+                    }
                 }
 
-                for (int j = 1; j < list.length(); j++) {
-                    target[j - 1] = list.getInt(j);
-                }
             }
         } catch (JSONException ex) {
             //

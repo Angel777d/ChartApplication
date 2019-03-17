@@ -38,7 +38,7 @@ class LineChartModel {
     }
 
     void process(Data data, Stage stage, Range range, Extrems ext) {
-        float koeffY = (float) stage.height / ext.delta;
+        float koeffY = (float) stage.height / (ext.getMax() - ext.getMin());
         float stepX = (float) stage.width / range.len;
 
         for (int i = 0; i < range.len; i++) {
@@ -53,10 +53,10 @@ class LineChartModel {
                 pts[index] = i * stepX;
                 pts[index + 2] = (i + 1) * stepX;
 
-                float pos = (line.yAxis[range.offset + i] - ext.min) * koeffY;
+                float pos = (line.yAxis[range.offset + i] - ext.getMin()) * koeffY;
                 pts[index + 1] = stage.height - pos;
 
-                pos = (line.yAxis[range.offset + i + 1] - ext.min) * koeffY;
+                pos = (line.yAxis[range.offset + i + 1] - ext.getMin()) * koeffY;
                 pts[index + 3] = stage.height - pos;
             }
         }
@@ -68,7 +68,7 @@ abstract class BasicDrawer implements IDrawer {
     abstract protected void startDraw(Canvas canvas);
 
     boolean invDraw = false;
-    private boolean invData, invStage, invBounds = false;
+    boolean invData, invStage, invBounds = false;
 
     Data data = new Data();
     Stage stage = new Stage();
@@ -114,6 +114,7 @@ abstract class BasicDrawer implements IDrawer {
     }
 
     public final void update(long dt) {
+        invBounds = invBounds || ext.animate(dt);
         validate();
         invData = invStage = invBounds = false;
     }

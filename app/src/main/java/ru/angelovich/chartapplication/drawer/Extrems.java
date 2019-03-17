@@ -2,8 +2,45 @@ package ru.angelovich.chartapplication.drawer;
 
 import ru.angelovich.chartapplication.data.ChartLine;
 
+
+class AnimatedValue {
+    private static final int DURATION = 150;
+
+    float current, target;
+    private float step, remain;
+
+    void set(float value) {
+        if (value != target) {
+            target = value;
+            remain = DURATION;
+            step = (target - current) / DURATION;
+        }
+    }
+
+    float get() {
+        return current;
+    }
+
+    boolean animate(float dt) {
+        if (remain > 0) {
+            remain -= dt;
+            current += step * dt;
+
+            if (remain <= 0) {
+                current = target;
+            }
+            return true;
+        }
+        return false;
+    }
+}
+
+
 class Extrems {
-    int min, max, delta;
+    AnimatedValue min = new AnimatedValue();
+    AnimatedValue max = new AnimatedValue();
+
+    private float remain, step;
 
     void process(Data data, Range range) {
         int minY = Integer.MAX_VALUE;
@@ -17,16 +54,28 @@ class Extrems {
             }
         }
 
-        int newMax = max;
-        if (maxY * 1.05f > max) {
+        float newMax = max.get();
+        if (maxY * 1.05f > max.target) {
             newMax = (int) Math.ceil(maxY * 1.1f / 10) * 10;
-        } else if (1f * max / (max - maxY) > 0.3) {
+        } else if (1f * max.target / (max.target - maxY) > 0.3) {
             newMax = (int) Math.ceil(maxY * 1.1f / 10) * 10;
         }
 
-        min = 0;
-        max = newMax;
-
-        delta = max - min;
+        max.set(newMax);
+        min.set(0);
     }
+
+    int getMin() {
+        return Math.round(min.current);
+    }
+
+    int getMax() {
+        return Math.round(max.current);
+    }
+
+    boolean animate(float dt) {
+        return min.animate(dt) || max.animate(dt);
+    }
+
+
 }
