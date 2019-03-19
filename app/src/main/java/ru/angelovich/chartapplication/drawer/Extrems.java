@@ -4,7 +4,7 @@ import ru.angelovich.chartapplication.data.ChartLine;
 
 
 class AnimatedValue {
-    private static final int DURATION = 150;
+    private static final int DURATION = 100;
 
     float current, target;
     private float step, remain;
@@ -12,8 +12,8 @@ class AnimatedValue {
     void set(float value) {
         if (value != target) {
             target = value;
-            remain = DURATION;
-            step = (target - current) / DURATION;
+            remain = remain > 0 ? remain : DURATION;
+            step = (target - current) / remain;
         }
     }
 
@@ -37,10 +37,8 @@ class AnimatedValue {
 
 
 class Extrems {
-    AnimatedValue min = new AnimatedValue();
+    //    AnimatedValue min = new AnimatedValue();
     AnimatedValue max = new AnimatedValue();
-
-    private float remain, step;
 
     void process(Data data, Range range) {
         int minY = Integer.MAX_VALUE;
@@ -62,11 +60,12 @@ class Extrems {
         }
 
         max.set(newMax);
-        min.set(0);
+//        min.set(0);
     }
 
     int getMin() {
-        return Math.round(min.current);
+//        return Math.round(min.current);
+        return 0;
     }
 
     int getMax() {
@@ -74,7 +73,8 @@ class Extrems {
     }
 
     boolean animate(float dt) {
-        return min.animate(dt) || max.animate(dt);
+//        return min.animate(dt) || max.animate(dt);
+        return max.animate(dt);
     }
 
 
