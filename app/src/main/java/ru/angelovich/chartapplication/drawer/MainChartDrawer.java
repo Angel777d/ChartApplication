@@ -11,6 +11,8 @@ public class MainChartDrawer extends BasicDrawer {
     private YGridModel gridModelY;
     private XGridModel gridModelX;
 
+    private static final int X_OFFSET = 50;
+
     public MainChartDrawer() {
         gridModelY = new YGridModel();
         gridModelX = new XGridModel();
@@ -20,9 +22,11 @@ public class MainChartDrawer extends BasicDrawer {
         gridPaint.setAlpha(80);
         gridPaint.setStrokeWidth(2);
 
-        fontPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fontPaint = new Paint();
         fontPaint.setTextSize(32);
-        fontPaint.setStyle(Paint.Style.STROKE);
+        gridPaint.setColor(Color.GRAY);
+        gridPaint.setAlpha(80);
+        fontPaint.setAntiAlias(true);
     }
 
     @Override
@@ -38,9 +42,15 @@ public class MainChartDrawer extends BasicDrawer {
 
         if (invData || invStage || invBounds) {
             gridModelY.process(data, stage, bounds, ext);
-            gridModelX.process(data, range, stage);
+            gridModelX.process(data, stage, bounds, range);
         }
     }
+
+    @Override
+    public void setSize(int width, int height) {
+        super.setSize(width, height - X_OFFSET);
+    }
+
 
     private void drawRows(Canvas canvas) {
         for (int i = 0; i < gridModelY.rows.length; i++) {
@@ -49,7 +59,7 @@ public class MainChartDrawer extends BasicDrawer {
         }
 
         for (int i = 0; i < gridModelX.size; i++) {
-            canvas.drawText(gridModelX.values[i], gridModelX.positions[i], stage.height - 10, fontPaint);
+            canvas.drawText(gridModelX.values[i], gridModelX.positions[i], stage.height + X_OFFSET - 10, fontPaint);
         }
     }
 
@@ -71,21 +81,35 @@ public class MainChartDrawer extends BasicDrawer {
     }
 
     static class XGridModel {
-        private static final int MAX = 6;
+        private static final int MAX = 7;
         int size;
         int[] indexes = new int[MAX];
         float[] positions = new float[MAX];
         String[] values = new String[MAX];
 
-        void process(Data data, Range range, Stage stage) {
-            size = range.len > MAX ? MAX : range.len;
+        void process(Data data, Stage stage, Bounds bounds, Range range) {
 
-            float step = (float) range.len / size;
+            size = range.len;
+            int pow = 1;
+            while (size > MAX - 1) {
+                pow *= 2;
+                size = range.len / pow;
+            }
+
+            size = Math.max(size, MAX);
+            size = Math.min(size, data.fullSize);
+
+            int first = range.left - range.left % pow;
+
+            float virtualWidth = stage.width / bounds.delta();
+            float stepSize = virtualWidth / data.fullSize;
+            float startPos = first * stepSize - bounds.leftEdge * virtualWidth;
 
             for (int i = 0; i < size; i++) {
-                int index = range.offset + Math.round(step * i);
+                int index = first + i * pow;
+                index = Math.min(index, data.fullSize - 1);
                 values[i] = data.times[index];
-                positions[i] = (float) stage.width / size * i;
+                positions[i] = startPos + stepSize * i * pow;
                 indexes[i] = index;
             }
         }

@@ -37,21 +37,22 @@ class LineChartModel {
         }
     }
 
-    void process(Data data, Stage stage, Range range, Extrems ext) {
+    void process(Data data, Stage stage, Bounds bounds, Range range, Extrems ext) {
         float koeffY = (float) stage.height / (ext.getMax() - ext.getMin());
-        float stepX = (float) stage.width / range.len;
+        float virtualWidth = stage.width / bounds.delta();
+        float stepSize = virtualWidth / data.fullSize;
+        float startPos = range.left * stepSize - bounds.leftEdge * virtualWidth;
+
 
         for (int i = 0; i < range.len; i++) {
             int index = i * 4;
             for (int j = 0; j < data.linesCount; j++) {
                 ChartLine line = data.visibleLines.get(j);
-                if (!line.visible)
-                    continue;
 
                 float[] pts = ptsList.get(j);
 
-                pts[index] = i * stepX;
-                pts[index + 2] = (i + 1) * stepX;
+                pts[index] = startPos + i * stepSize;
+                pts[index + 2] = startPos + (i + 1) * stepSize;
 
                 float pos = (line.yAxis[range.offset + i] - ext.getMin()) * koeffY;
                 pts[index + 1] = stage.height - pos;
@@ -120,20 +121,17 @@ abstract class BasicDrawer implements IDrawer {
     }
 
     protected void validate() {
-        if (invData || invBounds)
-            range.process(data, bounds);
-
-        if (invData || invBounds)
-            ext.process(data, range);
-
         if (invData)
             model.updatePaint(data);
 
-        if (invData || invBounds)
+        if (invData || invBounds) {
+            range.process(data, bounds);
+            ext.process(data, range);
             model.updateRange(data, range);
+        }
 
         if (invData || invStage || invBounds)
-            model.process(data, stage, range, ext);
+            model.process(data, stage, bounds, range, ext);
 
         invDraw = invDraw || invData || invStage || invBounds;
     }

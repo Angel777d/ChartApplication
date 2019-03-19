@@ -105,7 +105,7 @@ abstract class DrawThread extends Thread {
             }
 
             try {
-                sleep(TickGenerator.FRAME_TIME);
+                sleep(TickGenerator.FRAME_TIME / 3);
             } catch (InterruptedException e) {
                 //e.printStackTrace();
             }
